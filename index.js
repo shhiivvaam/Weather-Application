@@ -1,91 +1,123 @@
-console.log('shhiivvaam');
+const userTab = document.querySelector("[data-userweather]");
+const searchTab = document.querySelector("[data-searchweather]");
 
+const userContainer = document.querySelector(".weather-container");
+
+const grantAccessContainer = document.querySelector(".grant-location-container");
+const searchForm = document.querySelector("[data-searchform]");
+const loadingScreen = document.querySelector(".loading-container");
+const userInfoContainer = document.querySelector(".user-info-container");
+
+
+// variables
+let currentTab = userTab;
 const API_KEY = "d1845658f92b31c64bd94f06f7188c9c";
 
-function renderWeatherInfo(data) {
-    // Adding to the UI
-    let newPara = document.createElement('p');
-    // newPara.textContent = data;
-    newPara.textContent = `${data?.main?.temp.toFixed(2)} °C`;
-    document.body.appendChild(newPara);
-    // console.log(newPara);
-}
+currentTab.classList.add("current-tab");
 
-async function fetchWeatherDetails() {
-    
-    try {
 
-        let city = 'goa';
 
-        const respose = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${API_KEY}&units=metric`);
-        const data = await respose.json();
+userTab.addEventListener("click", () => {
+    // pass clicked tab as the input parameter
+    switchTab(userTab);
+})
 
-        console.log('Weather Data : ' , data);
+searchTab.addEventListener("click", () => {
+    // pass clicked tab as the input parameter
+    switchTab(searchTab);
+})
 
-        // below two are wrong syntax   -> add comma instead of + sign
-        // console.log('Weather Data : ' + `${data}`);
-        // console.log('Weather Data : ' + data);
 
-        console.log('Weather Data : ' + `${data?.main?.temp.toFixed(2)} °C`);
 
-        renderWeatherInfo(data);
+// Function to Handle Tab Switching between user Tab and Current Tab
+function switchTab(clickedTab) {                              //! current Tab -> old Tab
+    if(clickedTab != currentTab) {                            //! clicked Tab -> new Tab
+        currentTab.classList.remove("current-tab");
+        currentTab = clickedTab;
+        currentTab.classList.add("current-tab");
 
-    } catch (error) {
-        console.log('Error : ', error);
+        if(!searchForm.classList.contains("active")) {
+            userInfoContainer.classList.remove("active");
+            grantAccessContainer.classList.remove("active");
+            searchForm.classList.add("active");
+        } else {
+            // if the previous location is search tab and now want to go to the your weather tab
+            searchForm.classList.remove("active");
+            userInfoContainer.classList.add("active");
+
+            // Now currently at { Your Weather } Tab and so have to display weather as well
+            // ans so checking the local storage for the coordinates and get the desired location data if saved.
+            getFromSessionStorage();
+        }
+
     }
 }
 
-// async function getCustomWeatherDetails(latitude = 15.6333, longitude = 18.3333) {
-async function getCustomWeatherDetails() {
-    try {
-        // let latitude = this.latitude;
-        // let longitude = this.longitude;
+// To get the location data previously fetched and saved in the session storage to use it again and again (Whenever the user presses the { Your Weather } Tab)
+// check if the coordinates are already present in the session storage  
+function getFromSessionStorage() {
+    const localCoordinates = sessionStorage("user-coordinates");
+    if(!localCoordinates) {
+        // if the location coordinates are not saved
+        grantAccessContainer.classList.add("active");
+    } else {
+        const coordinates = JSON.parse(localCoordinates);
+        fetchUserWeatherInfo(coordinates);
+    }
+}
 
-        let latitude = 15.6333;
-        let longitude = 18.3333;
+// Function to make the API call if we have the coordinates of the user that he/she is demanding the weathetr info for:
+async function fetchUserWeatherInfo() {
+    const { latitude, longitude } = coordinates;
+
+    // make Grant Location Container Invisible
+    grantAccessContainer.classList.remove("active");
+    
+    // make loader { Locading Screen Visible }
+    loadingScreen.classList.add("active");
+
+    // API CALL
+
+    try {
 
         const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${API_KEY}&units=metric`);
         const data = await response.json();
 
-        console.log('Weather Data : ', data);
-    } catch (error) {
-        console.log('Error : ', error);
+        // since now till this step we must have got the data -> the coordinates of the user and the API call must have given the required information 
+        //* so now we must remove the Loader here {  Loading Screen (gif)}
+        loadingScreen.classList.remove("active");
+        userInfoContainer.classList.add("active");
+
+        //! This function will be responsible to dynamically render the data to the UI that has been fetched from the API CALL
+        renderWeatherInfo();
+
+    } catch(error) {
+
+        loadingScreen.classList.remove("active");
+        console.log("Error : " ,error);
     }
 }
 
-function switchTab(clickedTab) {
-    apiErrorContainer.classList.remove('active');
+// Function to render the User Weather Info to the UI dynamically 
+function renderWeatherInfo(weatherInfo) {
 
-    if(clickedTab != currentTab) {
-        currentTab.classList.remove('current-tab');
-        currentTab = clickedTab;
-        currentTab.classList.add("current-tab");
+    // first we have to fetch the respective data
+    const cityName = document.querySelector("[data-cityname]");
+    const countryIcon = document.querySelector("[data-countryicon]");
+    const desc = document.querySelector("[data-weatherdesc]");
+    const weatherIcon = document.querySelector("[data-weathericon]");
+    const temp = document.querySelector("[data-temp]");
+    const windspeed = document.querySelector("[data-windspeed]");
+    const humidity = document.querySelector("[data-humidity]");
+    const cloudiness = document.querySelector("[data-cloudiness]");
 
-        if(!searchFrom.classList.contains('active')) {
-            userInfoContainer.classList.remove('active');
-            searchFrom.classList.add('active');
-        } else {
-            searchFrom.classList.remove('active');
-            userInfoContainer.classList.remove('active');
-            getFromSessionStorage();
-        }
-
-        // console.log("Current Tab", currentTab);
-    }
-}
-
-function getLocation() {
-    if(navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(showPosition);
-    } else {
-        console.log('No GeoLocation Support');
-    }
-}
-
-function showPosition(position) {
-    let latitude = position.coords.latitude;
-    let longitude = position.coords.longitude;
-
-    console.log(latitude);
-    console.log(longitude);
+    // fetch values from weather Info object and put in the UI elements created above
+    cityName.innerHTML = weatherInfo?.name;
+    countryIcon.src = `https://flagcdn.com/144x108/${weatherInfo?.sys?.country.toLowerCase()}.png`;
+    weatherInfo.innerHTML = weatherInfo?.weather?.[0]?.description;
+    weatherIcon.src = `http://openweathermap.org/img/w/${weatherInfo?.weather?.[0]?.icon}.png`;
+    temp.innerHTML = weatherInfo?.main?.temp;
+    windspeed.innerHTML = weatherInfo?.wind?.speed;
+    humidity.innerHTML = weatherInfo?.main?.humidity;
+    cloudiness.innerHTML = weatherInfo?.clouds?.all;
 }
