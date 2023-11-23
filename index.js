@@ -8,12 +8,15 @@ const searchForm = document.querySelector("[data-searchform]");
 const loadingScreen = document.querySelector(".loading-container");
 const userInfoContainer = document.querySelector(".user-info-container");
 
-
 // variables
 let currentTab = userTab;
 const API_KEY = "d1845658f92b31c64bd94f06f7188c9c";
 
 currentTab.classList.add("current-tab");
+
+// There is a possibility that when opening the application the user's session storage already have the coordinates present
+// so making a simple call to { getFromSessionStorage } function to automatically render the users current location weather information, if available
+getFromSessionStorage();
 
 
 
@@ -56,7 +59,7 @@ function switchTab(clickedTab) {                              //! current Tab ->
 // To get the location data previously fetched and saved in the session storage to use it again and again (Whenever the user presses the { Your Weather } Tab)
 // check if the coordinates are already present in the session storage  
 function getFromSessionStorage() {
-    const localCoordinates = sessionStorage("user-coordinates");
+    const localCoordinates = sessionStorage.getItem("user-coordinates");
     if(!localCoordinates) {
         // if the location coordinates are not saved
         grantAccessContainer.classList.add("active");
@@ -67,7 +70,7 @@ function getFromSessionStorage() {
 }
 
 // Function to make the API call if we have the coordinates of the user that he/she is demanding the weathetr info for:
-async function fetchUserWeatherInfo() {
+async function fetchUserWeatherInfo(coordinates) {
     const { latitude, longitude } = coordinates;
 
     // make Grant Location Container Invisible
@@ -89,7 +92,7 @@ async function fetchUserWeatherInfo() {
         userInfoContainer.classList.add("active");
 
         //! This function will be responsible to dynamically render the data to the UI that has been fetched from the API CALL
-        renderWeatherInfo();
+        renderWeatherInfo(data);
 
     } catch(error) {
 
@@ -111,15 +114,20 @@ function renderWeatherInfo(weatherInfo) {
     const humidity = document.querySelector("[data-humidity]");
     const cloudiness = document.querySelector("[data-cloudiness]");
 
+    console.log(weatherInfo)
+
     // fetch values from weather Info object and put in the UI elements created above
-    cityName.innerHTML = weatherInfo?.name;
+    cityName.innerHTML = weatherInfo?.name ? weatherInfo?.name : `Not Available`;
     countryIcon.src = `https://flagcdn.com/144x108/${weatherInfo?.sys?.country.toLowerCase()}.png`;
-    weatherInfo.innerHTML = weatherInfo?.weather?.[0]?.description;
-    weatherIcon.src = `http://openweathermap.org/img/w/${weatherInfo?.weather?.[0]?.icon}.png`;
-    temp.innerHTML = weatherInfo?.main?.temp;
-    windspeed.innerHTML = weatherInfo?.wind?.speed;
-    humidity.innerHTML = weatherInfo?.main?.humidity;
-    cloudiness.innerHTML = weatherInfo?.clouds?.all;
+    desc.innerHTML = weatherInfo?.weather?.[0]?.description || 'No description Available';
+    weatherIcon.src = weatherInfo?.weather?.[0]?.icon 
+                        ? `https://openweathermap.org/img/w/${weatherInfo?.weather?.[0]?.icon}.png`
+                        : `https://flagcdn.com/16x12/in.png`;
+                                            //${weatherInfo?.weather?.[0]?.icon}
+    temp.innerHTML = weatherInfo?.main?.temp ? `${weatherInfo?.main?.temp} °C` : `Not Available`;
+    windspeed.innerHTML = weatherInfo?.wind?.speed ? `${weatherInfo?.wind?.speed} m/s` : `Not Available`;
+    humidity.innerHTML = weatherInfo?.main?.humidity ? `${weatherInfo?.main?.humidity} %` : `Not Available`;
+    cloudiness.innerHTML = `${weatherInfo?.clouds?.all} %`;
 }
 
 
