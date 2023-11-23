@@ -121,3 +121,64 @@ function renderWeatherInfo(weatherInfo) {
     humidity.innerHTML = weatherInfo?.main?.humidity;
     cloudiness.innerHTML = weatherInfo?.clouds?.all;
 }
+
+
+// Grant Acces Location Button -> Listener
+
+// to fetch the coordinates
+// ask permission for accessing geo-location
+// to save the coordinates in the Local Storage (Session Storage)
+const grantAccessButton = document.querySelector("[data-grantaccess]");
+grantAccessButton.addEventListener("click", getLocation);
+
+
+// Weather Search from users Desired Lcoation -> from input Container
+const searchInput = document.querySelector("[data-searchinput]");
+searchForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+
+    let cityName = searchInput.value;
+
+    if(cityName === "") return;
+    fetchSearchWeatherInfo(cityName);
+    
+    // if(searchInput.value === "") return;
+    // fetchSearchWeatherInfo(searchInput.value);
+})
+
+async function fetchSearchWeatherInfo(city) {
+
+    loadingScreen.classList.add("active");
+    userInfoContainer.classList.remove("active");
+    grantAccessContainer.classList.remove("active");
+
+    try {
+
+        const response = await fetch (`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${API_KEY}&units=metric`)
+        const data = await response.json();
+        loadingScreen.classList.remove("active");
+        userInfoContainer.classList.add("active");
+        renderWeatherInfo(data);
+
+    } catch (error) {
+        console.log("Error : ",  error);
+    }
+}
+
+function getLocation() {
+    if(navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(showPosition);
+    } else {
+        alert("No Geo-Location Support Available 👎👎");
+    }
+}
+
+function showPosition(position) {
+    const userCoordinates = {
+        latitude : position.coords.latitude,
+        longitude : position.coords.longitude,
+    }
+
+    sessionStorage.setItem("user-coordinates", JSON.stringify(userCoordinates));
+    fetchUserWeatherInfo(userCoordinates);
+}
